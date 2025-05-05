@@ -35,6 +35,15 @@ class FormHandler {
         const render = document.getElementById('render').checked;
         if (render) data.render = true;
 
+        // Get proxy type and set the appropriate flag
+        const proxyType = document.getElementById('proxy_type').value;
+        if (proxyType === 'premium') {
+            data.premium_proxy = true;
+        } else if (proxyType === 'stealth') {
+            data.stealth_proxy = true;
+        }
+        // Classic is default, so no flag needed
+
         const waitBrowser = document.getElementById('wait_browser').value;
         if (waitBrowser) data.wait_browser = waitBrowser;
 
@@ -245,6 +254,16 @@ class StateManager {
 
         // Restore advanced options
         if (data.render) document.getElementById('render').checked = true;
+
+        // Restore proxy type
+        if (data.premium_proxy) {
+            document.getElementById('proxy_type').value = 'premium';
+        } else if (data.stealth_proxy) {
+            document.getElementById('proxy_type').value = 'stealth';
+        } else {
+            document.getElementById('proxy_type').value = 'classic';
+        }
+
         if (data.wait_browser) document.getElementById('wait_browser').value = data.wait_browser;
         if (data.wait) document.getElementById('wait').value = data.wait;
         if (data.wait_for) document.getElementById('wait_for').value = data.wait_for;
@@ -287,7 +306,9 @@ class ConfigManager {
             return response.json();
         })
         .then(data => {
-            configPreview.setValue(JSON.stringify(data, null, 2));
+            // Create a custom ordered stringification that preserves the order we want
+            const orderedData = orderConfigObject(data);
+            configPreview.setValue(orderedData);
             StateManager.saveState();
         })
         .catch(error => {
@@ -333,6 +354,51 @@ class ConfigManager {
         configPreview.setValue(''); // Clear the preview
         Toast.show('Form cleared');
     }
+}
+
+// Function to order the object properties in our preferred order
+// Note: This is defined as a global function, not as a method of ConfigManager
+function orderConfigObject(data) {
+    const sourceName = Object.keys(data)[0];
+    if (!sourceName) return JSON.stringify(data, null, 2);
+
+    const source = data[sourceName];
+
+    // Define the order of properties
+    const propertyOrder = [
+        "type",
+        "url",
+        "render",
+        "wait",
+        "wait_browser",
+        "wait_for",
+        "premium_proxy",
+        "stealth_proxy",
+        "selectors",
+        "news_selector",
+        "cookies",
+        "headers"
+    ];
+
+    // Create a new ordered object
+    const ordered = {};
+    ordered[sourceName] = {};
+
+    // Add properties in our specified order
+    propertyOrder.forEach(prop => {
+        if (source.hasOwnProperty(prop)) {
+            ordered[sourceName][prop] = source[prop];
+        }
+    });
+
+    // Add any remaining properties not in our list
+    Object.keys(source).forEach(prop => {
+        if (!propertyOrder.includes(prop)) {
+            ordered[sourceName][prop] = source[prop];
+        }
+    });
+
+    return JSON.stringify(ordered, null, 2);
 }
 
 class TabManager {
