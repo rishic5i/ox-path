@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>View Sources - HLS.CI Config</title>
+   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+   <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" rel="stylesheet">
+   <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/github.min.css" rel="stylesheet">
+   <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+   <link href="{{ url_for('static', filename='css/view.css') }}" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-gray-50">
+   <header class="bg-white">
+       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+           <div class="flex justify-between items-center h-16">
+               <div class="flex items-center">
+                   <h1 class="logo">
+                       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                       </svg>
+                       HLS.CI Config Viewer
+                   </h1>
+               </div>
+               <nav class="flex space-x-6">
+                   <a href="/" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Create New</a>
+               </nav>
+           </div>
+       </div>
+   </header>
+
+   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+       <div class="grid lg:grid-cols-12 gap-8">
+           <!-- Source List -->
+           <div class="lg:col-span-3">
+               <div class="bg-white rounded-lg shadow-sm p-4 source-list">
+                   <div class="source-list-header">
+                       <h2 class="text-lg font-medium">Sources</h2>
+                       <div class="source-count"><span id="sourceCount">{{ sources|length }}</span> sources</div>
+                       <input
+                           type="search"
+                           id="sourceSearch"
+                           class="form-input w-full mt-4"
+                           placeholder="Search sources..."
+                       >
+                   </div>
+                   <div class="source-list-content mt-4">
+                       {% for source in sources %}
+                       <button
+                           class="source-btn w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors"
+                           data-source="{{ source }}">
+                           {{ source }}
+                       </button>
+                       {% endfor %}
+                   </div>
+               </div>
+           </div>
+
+           <!-- Editor Section -->
+           <div class="lg:col-span-9">
+               <div class="preview-panel">
+                   <div class="preview-header">
+                       <h3 class="font-medium" id="selectedSource">Select a source</h3>
+                       <div class="flex space-x-2">
+                           <button id="formatBtn" class="btn btn-secondary" style="display: none;">
+                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                               </svg>
+                               Format
+                           </button>
+                           <button id="saveBtn" class="btn btn-primary" style="display: none;">
+                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                               </svg>
+                               Save Changes
+                           </button>
+                       </div>
+                   </div>
+                   <div class="flex-1 p-4">
+                       <textarea id="configEditor" class="hidden"></textarea>
+                   </div>
+               </div>
+           </div>
+       </div>
+   </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script>
+        let editor;
+        let currentSource = '';
+        let sourcesData = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            editor = CodeMirror.fromTextArea(document.getElementById('configEditor'), {
+                mode: 'javascript',
+                theme: 'github',
+                lineNumbers: true,
+                matchBrackets: true,
+                autoCloseBrackets: true,
+                tabSize: 2,
+                lineWrapping: true,
+                foldGutter: true,
+                gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+                extraKeys: {
+                    "Ctrl-Q": function(cm) { cm.foldCode(cm.getCursor()); },
+                    "Ctrl-Space": "autocomplete"
+                },
+                indentUnit: 4
+            });
+
+            // Load all sources data initially
+            {% for source in sources %}
+            fetch(`/get_source/{{ source }}`)
+                .then(response => response.json())
+                .then(data => {
+                    sourcesData['{{ source }}'] = data;
+                });
+            {% endfor %}
+
+            // Setup search functionality
+            const searchInput = document.getElementById('sourceSearch');
+            searchInput.addEventListener('input', filterSources);
+
+            setupSourceButtons();
+
+            function setupSourceButtons() {
+                document.querySelectorAll('.source-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const sourceName = this.dataset.source;
+                        loadSource(sourceName);
+
+                        // Update active state
+                        document.querySelectorAll('.source-btn').forEach(b =>
+                            b.classList.remove('bg-blue-50', 'text-blue-700'));
+                        this.classList.add('bg-blue-50', 'text-blue-700');
+                    });
+                });
+            }
+
+            function filterSources() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const sourceButtons = document.querySelectorAll('.source-btn');
+
+                sourceButtons.forEach(btn => {
+                    const sourceName = btn.dataset.source;
+                    const sourceData = sourcesData[sourceName];
+                    const urls = sourceData?.url || [];
+
+                    const matchesSource = sourceName.toLowerCase().includes(searchTerm);
+                    const matchesUrl = urls.some(url => url.toLowerCase().includes(searchTerm));
+
+                    btn.style.display = (matchesSource || matchesUrl) ? 'block' : 'none';
+                });
+            }
+
+            document.getElementById('formatBtn').addEventListener('click', formatJson);
+            document.getElementById('saveBtn').addEventListener('click', saveChanges);
+        });
+
+        function loadSource(sourceName) {
+            currentSource = sourceName;
+            document.getElementById('selectedSource').textContent = sourceName;
+            document.getElementById('formatBtn').style.display = 'flex';
+            document.getElementById('saveBtn').style.display = 'flex';
+
+            fetch(`/get_source/${sourceName}`)
+                .then(response => response.json())
+                .then(data => {
+                    editor.setValue(JSON.stringify(data, null, 2));
+                })
+                .catch(error => showToast('Failed to load source', 'error'));
+        }
+
+        function formatJson() {
+            try {
+                const content = editor.getValue();
+                const formatted = JSON.stringify(JSON.parse(content), null, 2);
+                editor.setValue(formatted);
+                showToast('JSON formatted successfully');
+            } catch (e) {
+                showToast('Invalid JSON', 'error');
+            }
+        }
+
+        function saveChanges() {
+            try {
+                const content = editor.getValue();
+                const config = JSON.parse(content);
+
+                fetch('/save_source', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sourceName: currentSource,
+                        config: config
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    showToast('Changes saved successfully');
+                })
+                .catch(error => showToast('Failed to save changes', 'error'));
+            } catch (e) {
+                showToast('Invalid JSON', 'error');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type} slide-in`;
+            toast.innerHTML = `
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${type === 'success'
+                        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>'
+                        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'}
+                </svg>
+                <span>${message}</span>
+            `;
+
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
