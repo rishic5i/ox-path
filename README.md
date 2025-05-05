@@ -12,6 +12,9 @@
 - Save, edit, and manage existing configurations
 - Copy configurations to clipboard in JSON format
 
+<p align="center"><img src="media/boomer.png" alt=""></p>
+
+
 ## Usage
 
 ### Basic Setup Tab
