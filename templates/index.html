@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="HLS.CI Scraper Configuration Generator - Create and manage web scraping configurations easily">
+    <title>HLS.CI Scraper Configuration Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/github.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+
+<body class="min-h-screen bg-gray-50">
+    <header class="bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="logo">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        HLS.CI Config Generator
+                    </h1>
+                </div>
+                <nav class="flex space-x-6">
+                    <a href="/view" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Browse / Edit</a></a>
+                </nav>
+            </div>
+        </div>
+    </header>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid lg:grid-cols-2 gap-8">
+            <!-- Form Section -->
+            <div class="bg-white rounded-lg shadow-sm">
+                <nav class="border-b border-gray-200" aria-label="Configuration sections">
+                    <div class="flex -mb-px" role="tablist">
+                        <button class="tab-button active" data-tab="basic" role="tab" aria-selected="true">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            <span>Basic Setup</span>
+                        </button>
+                        <button class="tab-button" data-tab="selectors" role="tab" aria-selected="false">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                            </svg>
+                            <span>Selectors</span>
+                        </button>
+                        <button class="tab-button" data-tab="detail" role="tab" aria-selected="false">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span>Detail Page</span>
+                        </button>
+                        <button class="tab-button" data-tab="advanced" role="tab" aria-selected="false">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                            <span>Advanced</span>
+                        </button>
+                    </div>
+                </nav>
+                <form id="configForm" class="p-6 space-y-6">
+                    <!-- Basic Tab -->
+                    <div class="tab-content active" id="basic-content" role="tabpanel">
+                        <div class="field-group">
+                            <label for="sourceName">Source Name</label>
+                            <input type="text" id="sourceName" class="form-input" placeholder="Enter a unique identifier for your scraper" required>
+                            <div class="help-text">A unique identifier for your scraper configuration</div>
+                        </div>
+                        <div class="field-group">
+                            <div class="flex justify-between items-center mb-2">
+                                <label>Target URLs</label>
+                                <button type="button" class="btn btn-secondary add-url-btn">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add URL
+                                </button>
+                            </div>
+                            <div id="urlContainer" class="space-y-3"></div>
+                            <div class="help-text">Add one or more URLs to scrape. These should be the landing or listing pages.</div>
+                        </div>
+                    </div>
+                    <!-- Selectors Tab -->
+                    <div class="tab-content hidden" id="selectors-content" role="tabpanel">
+                        <div class="info-box mb-6">
+                            <div class="flex items-start">
+                                <svg class="w-5 h-5 text-primary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <p class="ml-3 text-sm">These selectors will be used to extract information from the listing page. Use XPath or CSS selectors.</p>
+                            </div>
+                        </div>
+                        <div class="space-y-6">
+                            <div class="field-group">
+                                <label for="newsSelector">News Item Selector</label>
+                                <input type="text" id="newsSelector" class="form-input" placeholder="e.g., //div[@class='news-item']" required>
+                                <div class="help-text">The selector that identifies each news item in the list</div>
+                            </div>
+                            <div class="field-group">
+                                <label for="newsLinkSelector">News Link Selector</label>
+                                <input type="text" id="newsLinkSelector" class="form-input" placeholder="e.g., .//a[@class='title']" required>
+                                <div class="help-text">The selector for the link to the full article within each news item</div>
+                            </div>
+                            <div class="field-group">
+                                <h3 class="text-sm font-medium mb-4">Optional List Page Selectors</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="selector_title">Title</label>
+                                        <input type="text" id="selector_title" class="form-input" placeholder="e.g., .//h2[@class='headline']">
+                                    </div>
+                                    <div>
+                                        <label for="selector_published_date">Published Date</label>
+                                        <input type="text" id="selector_published_date" class="form-input" placeholder="e.g., .//span[@class='date']">
+                                    </div>
+                                    <div>
+                                        <label for="selector_abstract">Abstract</label>
+                                        <input type="text" id="selector_abstract" class="form-input" placeholder="e.g., .//p[@class='summary']">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Detail Page Tab -->
+                    <div class="tab-content hidden" id="detail-content" role="tabpanel">
+                        <div class="info-box mb-6">
+                            <div class="flex items-start">
+                                <svg class="w-5 h-5 text-primary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <p class="ml-3 text-sm">These selectors will be used to extract information from individual article pages. Leave empty to skip detail page scraping.</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="field-group">
+                                <label for="news_selector_title">Article Title</label>
+                                <input type="text" id="news_selector_title" class="form-input" placeholder="e.g., //h1[@class='article-title']">
+                            </div>
+                            <div class="field-group">
+                                <label for="news_selector_article_date">Article Date</label>
+                                <input type="text" id="news_selector_article_date" class="form-input" placeholder="e.g., //time[@class='published']">
+                            </div>
+                            <div class="field-group">
+                                <label for="news_selector_content">Content</label>
+                                <input type="text" id="news_selector_content" class="form-input" placeholder="e.g., //div[@class='article-content']">
+                            </div>
+                            <div class="field-group">
+                                <label for="news_selector_author">Author</label>
+                                <input type="text" id="news_selector_author" class="form-input" placeholder="e.g., //span[@class='author']">
+                            </div>
+                            <div class="field-group md:col-span-2">
+                                <label for="news_selector_attachments">Attachments</label>
+                                <input type="text" id="news_selector_attachments" class="form-input" placeholder="e.g., //div[@class='attachments']//a">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Advanced Tab -->
+                    <div class="tab-content hidden" id="advanced-content" role="tabpanel">
+                        <div class="info-box warning mb-6">
+                            <div class="flex items-start">
+                                <svg class="w-5 h-5 text-warning mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <p class="ml-3 text-sm">Advanced settings are typically only needed for JavaScript-heavy sites or sites requiring authentication.</p>
+                            </div>
+                        </div>
+                        <div class="space-y-6">
+                            <div class="flex items-start space-x-3">
+                                <div class="flex items-center h-5">
+                                    <input type="checkbox" id="render" class="form-checkbox">
+                                </div>
+                                <div>
+                                    <label for="render" class="font-medium">Enable JavaScript Rendering</label>
+                                    <p class="text-sm text-gray-500">Use this for sites that require JavaScript to load content</p>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="wait_browser">Wait Condition</label>
+                                <select id="wait_browser" class="form-input">
+                                    <option value="">Select wait condition</option>
+                                    <option value="networkidle0">Network Idle (0 connections)</option>
+                                    <option value="networkidle2">Network Idle (≤ 2 connections)</option>
+                                </select>
+                                <div class="help-text">When to consider the page as fully loaded</div>
+                            </div>
+                            <div class="field-group">
+                                <label for="wait">Wait Time (ms)</label>
+                                <input type="number" id="wait" class="form-input" placeholder="e.g., 5000">
+                                <div class="help-text">Additional time to wait after page load</div>
+                            </div>
+                            <div class="field-group">
+                                <label for="wait_for">Wait For Element</label>
+                                <input type="text" id="wait_for" class="form-input" placeholder="e.g., #content, .news-container">
+                                <div class="help-text">Wait for a specific element to appear before scraping</div>
+                            </div>
+                            <div class="field-group">
+                                <label for="headers">Custom Headers</label>
+                                <textarea id="headers" rows="4" class="form-input font-mono text-sm" placeholder='{"User-Agent": "Custom Agent"}'></textarea>
+                                <div class="help-text">Additional HTTP headers in JSON format</div>
+                            </div>
+                            <div class="field-group">
+                                <label for="cookies">Cookies</label>
+                                <textarea id="cookies" rows="4" class="form-input font-mono text-sm" placeholder='{"sessionId": "your-session-id"}'></textarea>
+                                <div class="help-text">Cookies in JSON format for authenticated access</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-4 border-t pt-4">
+                        <button type="button" id="clearFormBtn" class="btn btn-secondary">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Clear Form
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <!-- Preview Section -->
+            <div class="preview-panel">
+                <div class="preview-header">
+                    <h3 class="font-medium">Configuration Preview</h3>
+                    <button id="copyConfigBtn" class="btn btn-primary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                        </svg>
+                        Copy Config
+                    </button>
+                </div>
+                <div class="flex-1 p-4">
+                    <textarea id="configPreview" class="hidden"></textarea>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+
+</html>
